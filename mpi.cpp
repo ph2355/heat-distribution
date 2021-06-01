@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     for (int iter = 0; iter < max_iters; iter++) {
 
 
-        /* pošlji levo, dobi z desne */
+        /* poÅ¡lji levo, dobi z desne */
         for (int i = 0; i < local_nrows; i++)
             sendbuf[i] = plate_now[i][1];
         MPI_Sendrecv(sendbuf, local_nrows, MPI_DOUBLE, left, tag,
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
         for (int i = 0; i < local_nrows; i++)
             plate_now[i][local_ncols + 1] = recvbuf[i];
 
-        /* pošlji desno, dobi z leve */
+        /* poÅ¡lji desno, dobi z leve */
         for (int i = 0; i < local_nrows; i++)
             sendbuf[i] = plate_now[i][local_ncols];
         MPI_Sendrecv(sendbuf, local_nrows, MPI_DOUBLE, right, tag,
