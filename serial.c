@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 
-#define WIDTH 16
-#define HEIGHT 16
+#define WIDTH 1024
+#define HEIGHT 1024
 #define TILE_WIDTH 3
 #define TILE_HEIGHT 3
 #define N_TILES_HORIZONTAL (WIDTH / TILE_WIDTH + (WIDTH % TILE_WIDTH == 0 ? 0 : 1))
 #define N_TILES_VERTICAL (HEIGHT / TILE_HEIGHT + (HEIGHT % TILE_HEIGHT == 0 ? 0 : 1))
-#define N_ITERATIONS 1000
+#define N_ITERATIONS 10000
 
 void heat_distribution_serial(float *plate, float *plateNew);
 void initialize_heat_plate(float *plate);
@@ -25,10 +26,16 @@ int main() {
     printf("before: \n");
     printPlate((float *)plate);
 
+    double start = omp_get_wtime();
+
     heat_distribution_serial((float *)plate, (float *)plateNew);
 
-    printf("after: \n");
-    printPlate((float *)plate);
+    double end = omp_get_wtime();
+
+    printf("serial execution time %.2f\n", end-start);
+
+    // printf("after: \n");
+    // printPlate((float *)plate);
 
     return 0;
 }
@@ -41,7 +48,7 @@ void initialize_heat_plate(float *plate) {
             else if (j == N_TILES_HORIZONTAL - 1)
                 plate[i * N_TILES_HORIZONTAL + j] = 100;        // initialize right side of plate
             else if (i == 0)
-                plate[i * N_TILES_HORIZONTAL + j] = 100;                                 // initialize top side of plate
+                plate[i * N_TILES_HORIZONTAL + j] = 100;        // initialize top side of plate
             else if (i == N_TILES_VERTICAL - 1)
                 plate[i * N_TILES_HORIZONTAL + j] = 0;          // initialize bottom side of plate
             else 
