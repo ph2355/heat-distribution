@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <omp.h>
 
-#define WIDTH 1024
-#define HEIGHT 1024
-#define TILE_WIDTH 3
-#define TILE_HEIGHT 3
+#define WIDTH 16
+#define HEIGHT 16
+#define TILE_WIDTH 1
+#define TILE_HEIGHT 1
 #define N_TILES_HORIZONTAL (WIDTH / TILE_WIDTH + (WIDTH % TILE_WIDTH == 0 ? 0 : 1))
 #define N_TILES_VERTICAL (HEIGHT / TILE_HEIGHT + (HEIGHT % TILE_HEIGHT == 0 ? 0 : 1))
-#define N_ITERATIONS 10000
+#define N_ITERATIONS 20
 
 void heat_distribution_serial(float *plate, float *plateNew);
 void initialize_heat_plate(float *plate);
@@ -23,8 +23,8 @@ int main() {
     initialize_heat_plate((float *)plate);
     initialize_heat_plate((float *)plateNew);
 
-    printf("before: \n");
-    printPlate((float *)plate);
+    // printf("before: \n");
+    // printPlate((float *)plate);
 
     double start = omp_get_wtime();
 
@@ -34,8 +34,8 @@ int main() {
 
     printf("serial execution time %.2f\n", end-start);
 
-    // printf("after: \n");
-    // printPlate((float *)plate);
+    printf("after: \n");
+    printPlate((float *)plate);
 
     return 0;
 }
@@ -101,7 +101,7 @@ void swap(float **plate, float **plateNew) {
 void printPlate(float *plate) {
     for (int i = 0; i < N_TILES_VERTICAL; i++) {
         for (int j = 0; j < N_TILES_HORIZONTAL; j++) {
-            printf("%f ", plate[i * N_TILES_HORIZONTAL + j]);
+            printf("%6.2f ", plate[i * N_TILES_HORIZONTAL + j]);
         }
         printf("\n");
     }

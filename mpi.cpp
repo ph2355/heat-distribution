@@ -24,9 +24,9 @@ void init_plate(double** plate, int grid_size, int local_nrows, int local_ncols,
     for (int i = 0; i < local_nrows; i++) {
         for (int j = 1; j < local_ncols + 1; j++) {
             if (i == 0)
-                plate[i][j] = 0.0;
-            else if (i == local_nrows - 1)
                 plate[i][j] = 100.0;
+            else if (i == local_nrows - 1)
+                plate[i][j] = 0.0;
             else if ((rank == 0) && j == 1)                  
                 plate[i][j] = 100.0;
             else if ((rank == size - 1) && j == local_ncols) 

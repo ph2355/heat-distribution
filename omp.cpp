@@ -18,15 +18,25 @@ inline double sq(double a) {
 void init_plate(double** plate, int size, double** new_plate) {
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
-            plate[i][j] = 0;
+            // plate[i][j] = 0;
+            if (j == 0)
+                plate[i][j] = 100.0;
+            else if (j == size - 1)
+                plate[i][j] = 100.0;
+            else if (i == 0)                  
+                plate[i][j] = 100.0;
+            else if (i == size - 1) 
+                plate[i][j] = 0.0;
+            else
+                plate[i][j] = 0;
         }
     }
 
 
-    for (int i = 0; i < size; i++) {
-        plate[i][0] = sq(cos(i * M_PI / double(size)));
-        plate[i][size - 1] = sq(sin(i * M_PI / double(size)));
-    }
+    // for (int i = 0; i < size; i++) {
+    //     plate[i][0] = sq(cos(i * M_PI / double(size)));
+    //     plate[i][size - 1] = sq(sin(i * M_PI / double(size)));
+    // }
 
 
     for (int i = 0; i < size; i++) {
@@ -38,7 +48,7 @@ void init_plate(double** plate, int size, double** new_plate) {
 
 void plate_to_file(double** plate, int size) {
     char filename[50];
-    sprintf_s(filename, "map_omp_%d.txt", size);
+    sprintf(filename, "map_omp_%d.txt", size);
     ofstream fout(filename);
 
     for (int i = 0; i < size; i++) {
@@ -50,11 +60,20 @@ void plate_to_file(double** plate, int size) {
     fout.close();
 }
 
+void printPlate(double** plate, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            printf("%6.2lf ", plate[i][j]);
+        }
+        printf("\n");
+    }
+}
+
 
 int main(int argc, char* argv[])
 {
-    const int plate_size = 8; //atof(argv[0]); //velikost plate
-    const int nthreads = 8; //atof(argv[1]); //število threadov
+    const int plate_size = 16; //atof(argv[0]); //velikost plate
+    const int nthreads = 8; //atof(argv[1]); //ï¿½tevilo threadov
     clock_t starting_time;
     starting_time = clock();
     double avg = 0;
@@ -77,7 +96,7 @@ int main(int argc, char* argv[])
     double dx = M_PI / plate_size;
     const double dt = sq(dx) / (8 * kappa);
     const double time = 0.5 * sq(M_PI) / kappa;
-    const double nsteps = time / dt;
+    const double nsteps = 20; //time / dt;
 
     init_plate(start_plate, plate_size, new_plate);
 
@@ -115,4 +134,5 @@ int main(int argc, char* argv[])
     cout << "Porabljen cas " << float(starting_time) / CLOCKS_PER_SEC << endl;
 
     plate_to_file(start_plate, plate_size);
+    printPlate(start_plate, plate_size);
 }

@@ -4,8 +4,8 @@
 #include <omp.h>
 #include <CL/cl.h>
 
-#define WIDTH 48
-#define HEIGHT 48
+#define WIDTH 1024
+#define HEIGHT 1024
 #define TILE_WIDTH 3
 #define TILE_HEIGHT 3
 #define N_TILES_HORIZONTAL (WIDTH / TILE_WIDTH + (WIDTH % TILE_WIDTH == 0 ? 0 : 1))
@@ -23,7 +23,7 @@ void printPlate(float *plate);
 
 int main(int argc, char **argv) {
 
-    int optimization = 1;
+    int optimization = 0;
 
     float plate[N_TILES_HORIZONTAL][N_TILES_VERTICAL];
     float plateNew[N_TILES_HORIZONTAL][N_TILES_VERTICAL];
@@ -31,13 +31,13 @@ int main(int argc, char **argv) {
     initialize_heat_plate((float *)plate);
     initialize_heat_plate((float *)plateNew);
 
-    printf("before: \n");
-    printPlate((float *)plate);
+    // printf("before: \n");
+    // printPlate((float *)plate);
 
     heat_distribution_gpu((float *)plate, (float *)plateNew, optimization);
 
-    printf("after: \n");
-    printPlate((float *)plate);
+    // printf("after: \n");
+    // printPlate((float *)plate);
 
     return 0;
 }
