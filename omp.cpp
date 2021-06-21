@@ -1,138 +1,121 @@
-#define _USE_MATH_DEFINES
-#include<iostream>
-#include<fstream>
-#include<stdio.h>
-#include<string>
-#include<stdlib.h>
-#include<math.h>
-#include<omp.h>
-#include<time.h>
-using namespace std;
+# include <stdlib.h>
+# include <stdio.h>
+# include <math.h>
+# include <omp.h>
 
 
+#define WIDTH 1000
+#define HEIGHT 1000
+#define TILE_WIDTH 1
+#define TILE_HEIGHT 1
+#define M (WIDTH / TILE_WIDTH + (WIDTH % TILE_WIDTH == 0 ? 0 : 1))
+#define N (HEIGHT / TILE_HEIGHT + (HEIGHT % TILE_HEIGHT == 0 ? 0 : 1))
+#define N_ITERATIONS 20
 
-inline double sq(double a) {
-    return a * a;
-}
+double u[M][N];
+double w[M][N];
 
-void init_plate(double** plate, int size, double** new_plate) {
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            // plate[i][j] = 0;
-            if (j == 0)
-                plate[i][j] = 100.0;
-            else if (j == size - 1)
-                plate[i][j] = 100.0;
-            else if (i == 0)                  
-                plate[i][j] = 100.0;
-            else if (i == size - 1) 
-                plate[i][j] = 0.0;
-            else
-                plate[i][j] = 0;
-        }
-    }
-
-
-    // for (int i = 0; i < size; i++) {
-    //     plate[i][0] = sq(cos(i * M_PI / double(size)));
-    //     plate[i][size - 1] = sq(sin(i * M_PI / double(size)));
-    // }
-
-
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            new_plate[i][j] = plate[i][j];
-        }
-    }
-}
-
-void plate_to_file(double** plate, int size) {
-    char filename[50];
-    sprintf(filename, "map_omp_%d.txt", size);
-    ofstream fout(filename);
-
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            fout << i << " " << j << " " << plate[i][j] << endl;
-        }fout << endl;
-    }
-
-    fout.close();
-}
-
-void printPlate(double** plate, int size) {
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            printf("%6.2lf ", plate[i][j]);
+void printPlate() {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%6.2lf ", w[i][j]);
         }
         printf("\n");
     }
 }
 
-
 int main(int argc, char* argv[])
 {
-    const int plate_size = 16; //atof(argv[0]); //velikost plate
-    const int nthreads = 8; //atof(argv[1]); //�tevilo threadov
-    clock_t starting_time;
-    starting_time = clock();
-    double avg = 0;
-    const double kappa = 1;
+
+    int width_m = TILE_WIDTH;
+    int width_n = TILE_HEIGHT;
+    int i;
+    int iterations;
+    int j;
+    double wtime;
 
 
-    //  omp_set_num_threads(8);
+#pragma omp parallel shared ( w ) private ( i, j )
+    {
+#pragma omp for
+        for (i = 1; i < M - 1; i++)
+        {
+            w[i][0] = 100.0;
+        }
+#pragma omp for
+        for (i = 1; i < M - 1; i++)
+        {
+            w[i][N - 1] = 100.0;
+        }
+#pragma omp for
+        for (j = 0; j < N; j++)
+        {
+            w[M - 1][j] = 0.0;
+        }
+#pragma omp for
+        for (j = 0; j < N; j++)
+        {
+            w[0][j] = 100.0;
+        }
 
-    //inizializacija tabel
-    double** start_plate = new double* [plate_size];
-    for (int i = 0; i < plate_size; i++) {
-        start_plate[i] = new double[plate_size];
+
     }
-
-    double** new_plate = new double* [plate_size];
-    for (int i = 0; i < plate_size; i++) {
-        new_plate[i] = new double[plate_size];
-    }
-
-    double dx = M_PI / plate_size;
-    const double dt = sq(dx) / (8 * kappa);
-    const double time = 0.5 * sq(M_PI) / kappa;
-    const double nsteps = 20; //time / dt;
-
-    init_plate(start_plate, plate_size, new_plate);
-
-
-    for (int tt = 0; tt < nsteps; tt++) {
-
-#pragma omp parallel for num_threads(nthreads)   
-
-        for (int ii = 1; ii < plate_size - 1; ii++) {
-            for (int j = 1; j < plate_size - 1; j++) {
-                new_plate[ii][j] = start_plate[ii][j] + kappa * dt * (start_plate[ii - 1][j] + start_plate[ii + 1][j] + start_plate[ii][j - 1] + start_plate[ii][j + 1] - 4 * start_plate[ii][j]) / sq(dx);
+#pragma omp parallel shared ( mean, w ) private ( i, j )
+    {
+#pragma omp for
+        for (i = 1; i < M - 1; i++)
+        {
+            for (j = 1; j < N - 1; j++)
+            {
+                w[i][j] = 0;
             }
         }
-#pragma omp parallel for num_threads(nthreads)
-        for (int i = 1; i < plate_size - 1; i++) {
-            new_plate[0][i] = start_plate[0][i] + kappa * dt * (start_plate[plate_size - 1][i] + start_plate[1][i] + start_plate[0][i - 1] + start_plate[0][i + 1] - 4 * start_plate[0][i]) / sq(dx);
-        }
-#pragma omp parallel for num_threads(nthreads)
-        for (int i = 1; i < plate_size - 1; i++) {
-            new_plate[plate_size - 1][i] = start_plate[plate_size - 1][i] + kappa * dt * (start_plate[plate_size - 2][i] + start_plate[0][i] + start_plate[plate_size - 1][i - 1] + start_plate[plate_size - 1][i + 1] - 4 * start_plate[plate_size - 1][i]) / sq(dx);
-        }
-
-#pragma omp parallel for num_threads(nthreads)
-        for (int i = 0; i < plate_size; i++) {
-            for (int j = 0; j < plate_size; j++) {
-                start_plate[i][j] = new_plate[i][j];
-            }
-        }
-
     }
 
+    printf("Zacetno stanje:\n");
+    printPlate();
 
+    iterations = 0;
+    wtime = omp_get_wtime();
+    int iter = N_ITERATIONS;
 
-    starting_time = clock() - starting_time;
-    cout << "Porabljen cas " << float(starting_time) / CLOCKS_PER_SEC << endl;
+    while (iterations <= iter)
+    {
+# pragma omp parallel shared ( u, w ) private ( i, j )
+        {
+# pragma omp for
+            for (i = 0; i < M; i++)
+            {
+                for (j = 0; j < N; j++)
+                {
+                    u[i][j] = w[i][j];
+                }
+            }
 
-    plate_to_file(start_plate, plate_size);
-    printPlate(start_plate, plate_size);
+# pragma omp for
+            for (i = 1; i < M - 1; i++)
+            {
+                for (j = 1; j < N - 1; j++)
+                {
+                    w[i][j] = (u[i - 1][j] + u[i + 1][j] + u[i][j - 1] + u[i][j + 1]) / 4.0;
+
+                    w[i][j] = 0.5 * (((u[i + 1][j] + u[i - 1][j]) / (1 + (width_m * width_m / width_n * width_n))) + ((u[i][j + 1] + u[i][j - 1]) / (1 + (width_n * width_n / width_m * width_m))));
+                }
+            }
+        }
+        iterations++;
+    }
+    wtime = omp_get_wtime() - wtime;
+
+    printf("Koncno stanje:\n");
+    printPlate();
+
+    printf("Cas poteka %f\n", wtime);
+
+    printf("\n");
+
+    return 0;
+
+# undef M
+# undef N
 }

@@ -1,9 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include<iostream>
 #include "mpi.h"
-using namespace std;
 
 
 int calc_ncols_from_rank(int rank, int size, int grid_size)
@@ -45,7 +43,9 @@ int main(int argc, char* argv[])
     int start_col, end_col; 
     int rank;              
     int size;              
-    int tag = 0;           
+    int tag = 0;  
+    int width_n = 1;
+    int width_m = 1;	
 
     MPI_Status status;     
     MPI_Init(&argc, &argv);
@@ -70,6 +70,8 @@ int main(int argc, char* argv[])
     int remote_ncols = calc_ncols_from_rank(size - 1, size, grid_size);
     double* printbuf = (double*)malloc(sizeof(double) * (remote_ncols + 2));
     init_plate(plate_now, grid_size, local_nrows, local_ncols, rank, size);
+
+    double start = omp_get_wtime();
 
     for (int iter = 0; iter < max_iters; iter++) {
 
@@ -113,7 +115,7 @@ int main(int argc, char* argv[])
                 end_col = local_ncols;
             }
             for (int j = start_col; j < end_col + 1; j++) {
-                plate_now[i][j] = (plate_prev[i - 1][j] + plate_prev[i + 1][j] + plate_prev[i][j - 1] + plate_prev[i][j + 1]) / 4.0;
+                plate_now[i][j] =  0.5 * (((plate_prev[i + 1][j] + plate_prev[i - 1][j]) / (1 + (width_m * width_m / width_n * width_n))) + ((plate_prev[i][j + 1] + plate_prev[i][j - 1]) / (1 + (width_n * width_n / width_m * width_m))));
             }
         }
 
@@ -140,6 +142,10 @@ int main(int argc, char* argv[])
     }
 
     MPI_Finalize();
+
+    double end = omp_get_wtime();
+
+    printf("GPU execution time %.2f\n", end - start);
 
     return EXIT_SUCCESS;
 }
