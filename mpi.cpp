@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "mpi.h"
+#include <omp.h>
 
 
 int calc_ncols_from_rank(int rank, int size, int grid_size)
@@ -17,8 +18,7 @@ int calc_ncols_from_rank(int rank, int size, int grid_size)
     return ncols;
 }
 
-void init_plate(double** plate, int grid_size, int local_nrows, int local_ncols, int rank, int size) {
-    double boundary_mean = ((grid_size - 2) * 100.0 * 2 + (grid_size - 2) * 100.0) / (double)((2 * grid_size) + (2 * grid_size) - 4);
+void init_plate(double** plate, int local_nrows, int local_ncols, int rank, int size) {
     for (int i = 0; i < local_nrows; i++) {
         for (int j = 1; j < local_ncols + 1; j++) {
             if (i == 0)
@@ -30,22 +30,21 @@ void init_plate(double** plate, int grid_size, int local_nrows, int local_ncols,
             else if ((rank == size - 1) && j == local_ncols) 
                 plate[i][j] = 100.0;
             else
-                plate[i][j] = boundary_mean;
+                plate[i][j] = 0;
         }
     }
 }
 
 int main(int argc, char* argv[])
 {
-    int grid_size = 16;
-    int max_iters = 20;
+    int size_m = 10;
+    int size_n = 100000;
+    int max_iters = 10000;
     int master = 0;
     int start_col, end_col; 
     int rank;              
     int size;              
-    int tag = 0;  
-    int width_n = 1;
-    int width_m = 1;	
+    int tag = 0;           
 
     MPI_Status status;     
     MPI_Init(&argc, &argv);
@@ -54,8 +53,8 @@ int main(int argc, char* argv[])
 
     int left = (rank == master) ? (rank + size - 1) : (rank - 1);
     int right = (rank + 1) % size;
-    int local_nrows = grid_size;
-    int local_ncols = calc_ncols_from_rank(rank, size, grid_size);
+    int local_nrows = size_m;
+    int local_ncols = calc_ncols_from_rank(rank, size, size_n);
 
     double** plate_prev = (double**)malloc(sizeof(double*) * local_nrows);
     for (int i = 0; i < local_nrows; i++) {
@@ -67,9 +66,9 @@ int main(int argc, char* argv[])
     }
     double* sendbuf = (double*)malloc(sizeof(double) * local_nrows);
     double* recvbuf = (double*)malloc(sizeof(double) * local_nrows);
-    int remote_ncols = calc_ncols_from_rank(size - 1, size, grid_size);
+    int remote_ncols = calc_ncols_from_rank(size - 1, size, size_m);
     double* printbuf = (double*)malloc(sizeof(double) * (remote_ncols + 2));
-    init_plate(plate_now, grid_size, local_nrows, local_ncols, rank, size);
+    init_plate(plate_now, local_nrows, local_ncols, rank, size);
 
     double start = omp_get_wtime();
 
@@ -115,7 +114,7 @@ int main(int argc, char* argv[])
                 end_col = local_ncols;
             }
             for (int j = start_col; j < end_col + 1; j++) {
-                plate_now[i][j] =  0.5 * (((plate_prev[i + 1][j] + plate_prev[i - 1][j]) / (1 + (width_m * width_m / width_n * width_n))) + ((plate_prev[i][j + 1] + plate_prev[i][j - 1]) / (1 + (width_n * width_n / width_m * width_m))));
+                plate_now[i][j] = (plate_prev[i - 1][j] + plate_prev[i + 1][j] + plate_prev[i][j - 1] + plate_prev[i][j + 1]) / 4.0;
             }
         }
 
@@ -124,17 +123,17 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < local_nrows; i++) {
         if (rank == 0) {
-            for (int j = 1; j < local_ncols + 1; j++) {
-                printf("%6.2f ", plate_now[i][j]);
-            }
+           // for (int j = 1; j < local_ncols + 1; j++) {
+            //    printf("%6.2f ", plate_now[i][j]);
+           // }
             for (int kk = 1; kk < size; kk++) { /* loop over other ranks */
-                remote_ncols = calc_ncols_from_rank(kk, size, grid_size);
+                remote_ncols = calc_ncols_from_rank(kk, size, size_m);
                 MPI_Recv(printbuf, remote_ncols + 2, MPI_DOUBLE, kk, tag, MPI_COMM_WORLD, &status);
-                for (int j = 1; j < remote_ncols + 1; j++) {
-                    printf("%6.2f ", printbuf[j]);
-                }
+                //for (int j = 1; j < remote_ncols + 1; j++) {
+                //    printf("%6.2f ", printbuf[j]);
+                //}
             }
-            printf("\n");
+            //printf("\n");
         }
         else {
             MPI_Send(plate_now[i], local_ncols + 2, MPI_DOUBLE, master, tag, MPI_COMM_WORLD);
